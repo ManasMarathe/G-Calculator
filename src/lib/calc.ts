@@ -30,20 +30,17 @@ export function seshCostPerHead(sesh: Pick<Sesh, "grams_smoked" | "cost_per_gram
 }
 
 /**
- * Per-member ledger. `net` = purchases credited − sesh shares debited.
- * `settle` additionally treats the remaining stash as jointly owned (its value
- * split across all members), so settle balances sum to ~0 and can be turned
- * into transfers. Rounding remainder goes to the largest balance.
+ * Per-member ledger, consumption-based: you're credited for what you bought
+ * and debited only for what you smoked (at each sesh's snapshotted rate).
+ * Nets don't sum to zero — the surplus is the weed still in the jar, which
+ * stays as the buyers' credit until it gets smoked.
  */
 export function computeBalances(
   members: Member[],
   purchases: Purchase[],
   seshes: Sesh[]
 ): Balance[] {
-  const stashValue = stashGrams(purchases, seshes) * avgCostPerGram(purchases);
-  const jarShare = members.length > 0 ? stashValue / members.length : 0;
-
-  const balances = members.map((member) => {
+  return members.map((member) => {
     const bought = purchases
       .filter((p) => p.member_id === member.id)
       .reduce((s, p) => s + p.total_cost, 0);
@@ -56,37 +53,28 @@ export function computeBalances(
         smokedGrams += sesh.grams_smoked / n;
       }
     }
-    const net = bought - smokedShare;
     return {
       member,
       bought: round2(bought),
       smokedShare: round2(smokedShare),
       smokedGrams: round2(smokedGrams),
-      net: round2(net),
-      settle: round2(net - jarShare),
+      net: round2(bought - smokedShare),
     };
   });
-
-  // Nudge the largest settle balance so the column sums to exactly 0.
-  const drift = round2(balances.reduce((s, b) => s + b.settle, 0));
-  if (drift !== 0 && balances.length > 0) {
-    const biggest = balances.reduce((a, b) =>
-      Math.abs(b.settle) > Math.abs(a.settle) ? b : a
-    );
-    biggest.settle = round2(biggest.settle - drift);
-  }
-  return balances;
 }
 
-/** Greedy debt simplification: largest creditor vs largest debtor, ≤ n−1 transfers. */
+/**
+ * Greedy debt simplification: largest creditor vs largest debtor. Stops when
+ * every debtor is settled — creditors' unmatched remainder is jar credit.
+ */
 export function settleDebts(balances: Balance[]): Transfer[] {
   const creditors = balances
-    .filter((b) => b.settle > 0.01)
-    .map((b) => ({ member: b.member, amount: b.settle }))
+    .filter((b) => b.net > 0.01)
+    .map((b) => ({ member: b.member, amount: b.net }))
     .sort((a, b) => b.amount - a.amount);
   const debtors = balances
-    .filter((b) => b.settle < -0.01)
-    .map((b) => ({ member: b.member, amount: -b.settle }))
+    .filter((b) => b.net < -0.01)
+    .map((b) => ({ member: b.member, amount: -b.net }))
     .sort((a, b) => b.amount - a.amount);
 
   const transfers: Transfer[] = [];

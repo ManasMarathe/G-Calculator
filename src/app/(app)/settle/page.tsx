@@ -10,15 +10,15 @@ export default async function SettlePage() {
   const transfers = settleDebts(balances);
   const stash = stashGrams(purchases, seshes);
   const stashValue = stash * avgCostPerGram(purchases);
-  const sorted = [...balances].sort((a, b) => b.settle - a.settle);
+  const sorted = [...balances].sort((a, b) => b.net - a.net);
 
   return (
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="font-display text-3xl font-extrabold">Settle up 🤝</h1>
         <p className="text-muted text-sm mt-1">
-          buys earn credit, seshes cost your share — the {grams(stash)} still in the jar (
-          {inr(stashValue)}) counts as everyone&apos;s 🍃
+          you owe for what you smoked, you&apos;re credited for what you bought — the{" "}
+          {grams(stash)} still in the jar (≈{inr(stashValue)}) stays as the buyers&apos; credit 🍃
         </p>
       </header>
 
@@ -48,20 +48,20 @@ export default async function SettlePage() {
                   </div>
                   <span
                     className={`font-bold ${
-                      b.settle > 0.01
+                      b.net > 0.01
                         ? "text-accent-deep"
-                        : b.settle < -0.01
+                        : b.net < -0.01
                           ? "text-danger"
                           : "text-muted"
                     }`}
                   >
-                    {b.settle > 0.01 ? `↑ ${inr(b.settle)}` : b.settle < -0.01 ? `↓ ${inr(-b.settle)}` : "even ✌️"}
+                    {b.net > 0.01 ? `↑ ${inr(b.net)}` : b.net < -0.01 ? `↓ ${inr(-b.net)}` : "even ✌️"}
                   </span>
                 </li>
               ))}
             </ul>
             <p className="text-xs text-muted px-1">
-              ↑ the circle owes them · ↓ they owe the circle
+              ↑ paid more than they smoked · ↓ smoked more than they paid
             </p>
           </section>
 
@@ -73,7 +73,9 @@ export default async function SettlePage() {
               <div className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-6 text-center">
                 <div className="text-4xl mb-2 inline-block animate-bob">🧘</div>
                 <p className="font-display font-bold">All square</p>
-                <p className="text-muted text-sm mt-1">perfect harmony in the circle</p>
+                <p className="text-muted text-sm mt-1">
+                  nobody&apos;s smoked more than they&apos;ve chipped in
+                </p>
               </div>
             ) : (
               <ul className="flex flex-col gap-2">
@@ -91,6 +93,12 @@ export default async function SettlePage() {
                   </li>
                 ))}
               </ul>
+            )}
+            {stash > 0 && (
+              <p className="text-xs text-muted px-1">
+                after settling, ≈{inr(stashValue)} of the buyers&apos; money is still in the jar as
+                weed — it squares itself as it gets smoked 💨
+              </p>
             )}
           </section>
         </>

@@ -1,16 +1,16 @@
-import Badges from "@/components/Badges";
 import CountUp from "@/components/CountUp";
 import { CumulativeSmokedChart, MemberGramsChart, RateTrendChart } from "@/components/Charts";
-import { computeBadges } from "@/lib/badges";
-import { computeBalances, round2, stashGrams, avgCostPerGram } from "@/lib/calc";
+import Trophies from "@/components/Trophies";
+import { computeBalances, round2, seshCost, stashGrams, avgCostPerGram } from "@/lib/calc";
 import { grams, inr, inrPrecise, shortDate } from "@/lib/format";
 import { getEverything } from "@/lib/queries";
+import { computeTrophies } from "@/lib/trophies";
 
 export const dynamic = "force-dynamic";
 
 export default async function StatsPage() {
   const { members, purchases, seshes } = await getEverything();
-  const badges = computeBadges(purchases, seshes);
+  const trophies = computeTrophies(members, purchases, seshes);
 
   if (purchases.length === 0 && seshes.length === 0) {
     return (
@@ -21,7 +21,7 @@ export default async function StatsPage() {
           <p className="font-display font-bold">No data, no drama</p>
           <p className="text-muted text-sm mt-1">stats show up once the jar sees some action</p>
         </div>
-        <Badges badges={badges} />
+        <Trophies trophies={trophies} />
       </div>
     );
   }
@@ -33,19 +33,24 @@ export default async function StatsPage() {
     seshes[0]
   );
   const avgPerSesh = seshes.length > 0 ? totalSmoked / seshes.length : 0;
+  const avgCostPerSesh =
+    seshes.length > 0 ? seshes.reduce((s, x) => s + seshCost(x), 0) / seshes.length : 0;
+  const avgHeads =
+    seshes.length > 0
+      ? seshes.reduce((s, x) => s + x.participants.length, 0) / seshes.length
+      : 0;
 
   // Burn rate: grams/day since the first sesh → runway for the current stash.
   const stash = stashGrams(purchases, seshes);
   let burnRate = 0;
+  let seshesPerWeek = 0;
   if (seshes.length > 0) {
     const first = new Date(seshes[0].created_at).getTime();
     const days = Math.max(1, (Date.now() - first) / 86_400_000);
     burnRate = totalSmoked / days;
+    seshesPerWeek = seshes.length / Math.max(1, days / 7);
   }
   const daysLeft = burnRate > 0 ? stash / burnRate : null;
-
-  const topBuyer = [...balances].sort((a, b) => b.bought - a.bought)[0];
-  const topSmoker = [...balances].sort((a, b) => b.smokedGrams - a.smokedGrams)[0];
 
   // Chart data (ascending time)
   let cumCost = 0;
@@ -72,25 +77,7 @@ export default async function StatsPage() {
       <h1 className="font-display text-3xl font-extrabold">Stats 😶‍🌫️</h1>
 
       <section className="grid grid-cols-2 gap-3">
-        {topBuyer && topBuyer.bought > 0 && (
-          <div className={`${tile} rotate-1`}>
-            <p className="text-[11px] text-muted uppercase tracking-wide">💸 Top buyer</p>
-            <p className="font-display text-lg font-bold mt-1">
-              {topBuyer.member.emoji} {topBuyer.member.name}
-            </p>
-            <p className="text-sm text-muted">{inr(topBuyer.bought)} invested</p>
-          </div>
-        )}
-        {topSmoker && topSmoker.smokedGrams > 0 && (
-          <div className={`${tile} -rotate-1`}>
-            <p className="text-[11px] text-muted uppercase tracking-wide">💨 Heaviest lungs</p>
-            <p className="font-display text-lg font-bold mt-1">
-              {topSmoker.member.emoji} {topSmoker.member.name}
-            </p>
-            <p className="text-sm text-muted">{grams(topSmoker.smokedGrams)} attributed</p>
-          </div>
-        )}
-        <div className={tile}>
+        <div className={`${tile} rotate-1`}>
           <p className="text-[11px] text-muted uppercase tracking-wide">🔥 Biggest sesh</p>
           <p className="font-display text-lg font-bold mt-1">
             {seshes.length > 0 ? grams(biggest.grams_smoked) : "—"}
@@ -99,10 +86,24 @@ export default async function StatsPage() {
             {seshes.length > 0 ? shortDate(biggest.created_at) : "yet to happen"}
           </p>
         </div>
-        <div className={tile}>
+        <div className={`${tile} -rotate-1`}>
           <p className="text-[11px] text-muted uppercase tracking-wide">⚖️ Avg per sesh</p>
           <CountUp value={avgPerSesh} kind="grams" className="font-display text-lg font-bold mt-1 block" />
           <p className="text-sm text-muted">across {seshes.length} seshes</p>
+        </div>
+        <div className={tile}>
+          <p className="text-[11px] text-muted uppercase tracking-wide">🧮 Avg sesh damage</p>
+          <CountUp value={avgCostPerSesh} kind="inr" className="font-display text-lg font-bold mt-1 block" />
+          <p className="text-sm text-muted">whole-sesh cost</p>
+        </div>
+        <div className={tile}>
+          <p className="text-[11px] text-muted uppercase tracking-wide">📅 Sesh pace</p>
+          <p className="font-display text-lg font-bold mt-1">
+            {seshes.length > 0 ? `${round2(seshesPerWeek)}/week` : "—"}
+          </p>
+          <p className="text-sm text-muted">
+            {seshes.length > 0 ? `~${round2(avgHeads)} heads in rotation` : "no seshes yet"}
+          </p>
         </div>
         {daysLeft !== null && (
           <div className={`${tile} col-span-2`}>
@@ -119,7 +120,7 @@ export default async function StatsPage() {
         )}
       </section>
 
-      <Badges badges={badges} />
+      <Trophies trophies={trophies} />
 
       {rateTrend.length >= 2 && (
         <section className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-4">

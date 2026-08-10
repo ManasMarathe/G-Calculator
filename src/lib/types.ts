@@ -31,8 +31,7 @@ export type Balance = {
   bought: number; // ₹ credited from purchases
   smokedShare: number; // ₹ debited from sesh shares
   smokedGrams: number; // attributed grams (equal split per sesh)
-  net: number; // bought − smokedShare
-  settle: number; // net minus share of remaining stash value (sums to ~0)
+  net: number; // bought − smokedShare; you owe only for what you smoked
 };
 
 export type Transfer = {
