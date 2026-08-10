@@ -18,7 +18,7 @@ export default async function TreasuryPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-bold">Treasury 💰</h1>
+        <h1 className="font-display text-3xl font-extrabold">Treasury 🥦</h1>
         <p className="text-muted text-sm mt-1">
           {purchases.length > 0 ? (
             <>
@@ -31,9 +31,9 @@ export default async function TreasuryPage() {
       </header>
 
       {members.length === 0 ? (
-        <div className="rounded-2xl bg-surface border border-edge p-6 text-center">
-          <div className="text-4xl mb-2">👥</div>
-          <p className="font-semibold">Add your circle first</p>
+        <div className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-6 text-center">
+          <div className="text-4xl mb-2 inline-block animate-bob">👥</div>
+          <p className="font-display font-bold">Add your circle first</p>
           <p className="text-muted text-sm mt-1">can&apos;t split a jar with nobody</p>
         </div>
       ) : (
@@ -43,11 +43,13 @@ export default async function TreasuryPage() {
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">The circle</h2>
         {members.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {members.map((m) => (
+          <div className="flex flex-wrap gap-2.5 py-1">
+            {members.map((m, i) => (
               <span
                 key={m.id}
-                className="rounded-full bg-surface border border-edge px-3 py-1.5 text-sm"
+                className={`rounded-full bg-surface border-2 border-edge shadow-sticker-sm px-3 py-1.5 text-sm ${
+                  i % 2 === 0 ? "rotate-1" : "-rotate-1"
+                }`}
               >
                 {m.emoji} {m.name}
               </span>
@@ -60,7 +62,7 @@ export default async function TreasuryPage() {
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Buy history</h2>
         {newestFirst.length === 0 ? (
-          <p className="text-muted text-sm rounded-2xl bg-surface border border-edge p-4">
+          <p className="text-muted text-sm rounded-3xl bg-surface border-2 border-edge shadow-sticker p-4">
             Jar&apos;s never been fed 😢 — log the first re-up above
           </p>
         ) : (
@@ -68,7 +70,7 @@ export default async function TreasuryPage() {
             {newestFirst.map((p) => (
               <li
                 key={p.id}
-                className="rounded-2xl bg-surface border border-edge px-4 py-3 flex items-center gap-3"
+                className="rounded-3xl bg-surface border-2 border-edge shadow-sticker-sm px-4 py-3 flex items-center gap-3"
               >
                 <span className="text-2xl">{p.member.emoji}</span>
                 <div className="flex-1 min-w-0">

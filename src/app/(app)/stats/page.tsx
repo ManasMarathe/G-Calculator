@@ -1,4 +1,7 @@
+import Badges from "@/components/Badges";
+import CountUp from "@/components/CountUp";
 import { CumulativeSmokedChart, MemberGramsChart, RateTrendChart } from "@/components/Charts";
+import { computeBadges } from "@/lib/badges";
 import { computeBalances, round2, stashGrams, avgCostPerGram } from "@/lib/calc";
 import { grams, inr, inrPrecise, shortDate } from "@/lib/format";
 import { getEverything } from "@/lib/queries";
@@ -7,16 +10,18 @@ export const dynamic = "force-dynamic";
 
 export default async function StatsPage() {
   const { members, purchases, seshes } = await getEverything();
+  const badges = computeBadges(purchases, seshes);
 
   if (purchases.length === 0 && seshes.length === 0) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-bold">Stats 📊</h1>
-        <div className="rounded-2xl bg-surface border border-edge p-6 text-center">
-          <div className="text-4xl mb-2">🦗</div>
-          <p className="font-semibold">No data, no drama</p>
+        <h1 className="font-display text-3xl font-extrabold">Stats 😶‍🌫️</h1>
+        <div className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-6 text-center">
+          <div className="text-4xl mb-2 inline-block animate-bob">🦗</div>
+          <p className="font-display font-bold">No data, no drama</p>
           <p className="text-muted text-sm mt-1">stats show up once the jar sees some action</p>
         </div>
+        <Badges badges={badges} />
       </div>
     );
   }
@@ -60,45 +65,49 @@ export default async function StatsPage() {
     .sort((a, b) => b.smokedGrams - a.smokedGrams)
     .map((b) => ({ name: `${b.member.emoji} ${b.member.name}`, grams: b.smokedGrams }));
 
+  const tile = "rounded-3xl bg-surface border-2 border-edge shadow-sticker-sm p-4";
+
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Stats 📊</h1>
+      <h1 className="font-display text-3xl font-extrabold">Stats 😶‍🌫️</h1>
 
-      <section className="grid grid-cols-2 gap-2">
+      <section className="grid grid-cols-2 gap-3">
         {topBuyer && topBuyer.bought > 0 && (
-          <div className="rounded-2xl bg-surface border border-edge p-4">
+          <div className={`${tile} rotate-1`}>
             <p className="text-[11px] text-muted uppercase tracking-wide">💸 Top buyer</p>
-            <p className="text-lg font-bold mt-1">
+            <p className="font-display text-lg font-bold mt-1">
               {topBuyer.member.emoji} {topBuyer.member.name}
             </p>
             <p className="text-sm text-muted">{inr(topBuyer.bought)} invested</p>
           </div>
         )}
         {topSmoker && topSmoker.smokedGrams > 0 && (
-          <div className="rounded-2xl bg-surface border border-edge p-4">
+          <div className={`${tile} -rotate-1`}>
             <p className="text-[11px] text-muted uppercase tracking-wide">💨 Heaviest lungs</p>
-            <p className="text-lg font-bold mt-1">
+            <p className="font-display text-lg font-bold mt-1">
               {topSmoker.member.emoji} {topSmoker.member.name}
             </p>
             <p className="text-sm text-muted">{grams(topSmoker.smokedGrams)} attributed</p>
           </div>
         )}
-        <div className="rounded-2xl bg-surface border border-edge p-4">
+        <div className={tile}>
           <p className="text-[11px] text-muted uppercase tracking-wide">🔥 Biggest sesh</p>
-          <p className="text-lg font-bold mt-1">{seshes.length > 0 ? grams(biggest.grams_smoked) : "—"}</p>
+          <p className="font-display text-lg font-bold mt-1">
+            {seshes.length > 0 ? grams(biggest.grams_smoked) : "—"}
+          </p>
           <p className="text-sm text-muted">
             {seshes.length > 0 ? shortDate(biggest.created_at) : "yet to happen"}
           </p>
         </div>
-        <div className="rounded-2xl bg-surface border border-edge p-4">
+        <div className={tile}>
           <p className="text-[11px] text-muted uppercase tracking-wide">⚖️ Avg per sesh</p>
-          <p className="text-lg font-bold mt-1">{grams(avgPerSesh)}</p>
+          <CountUp value={avgPerSesh} kind="grams" className="font-display text-lg font-bold mt-1 block" />
           <p className="text-sm text-muted">across {seshes.length} seshes</p>
         </div>
         {daysLeft !== null && (
-          <div className="rounded-2xl bg-surface border border-edge p-4 col-span-2">
+          <div className={`${tile} col-span-2`}>
             <p className="text-[11px] text-muted uppercase tracking-wide">⏳ Jar runway</p>
-            <p className="text-lg font-bold mt-1">
+            <p className="font-display text-lg font-bold mt-1">
               {stash <= 0
                 ? "already empty 💀"
                 : `~${Math.floor(daysLeft)} day${Math.floor(daysLeft) === 1 ? "" : "s"} left`}
@@ -110,24 +119,26 @@ export default async function StatsPage() {
         )}
       </section>
 
+      <Badges badges={badges} />
+
       {rateTrend.length >= 2 && (
-        <section className="rounded-2xl bg-surface border border-edge p-4">
-          <h2 className="text-sm font-semibold mb-1">Avg cost per gram over time</h2>
+        <section className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-4">
+          <h2 className="font-display text-sm font-bold mb-1">Avg cost per gram over time</h2>
           <p className="text-xs text-muted mb-3">currently {inrPrecise(avgCostPerGram(purchases))}/g</p>
           <RateTrendChart data={rateTrend} />
         </section>
       )}
 
       {cumSmoked.length >= 2 && (
-        <section className="rounded-2xl bg-surface border border-edge p-4">
-          <h2 className="text-sm font-semibold mb-3">Total grams burned 💨</h2>
+        <section className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-4">
+          <h2 className="font-display text-sm font-bold mb-3">Total grams burned 💨</h2>
           <CumulativeSmokedChart data={cumSmoked} />
         </section>
       )}
 
       {memberGrams.length > 0 && (
-        <section className="rounded-2xl bg-surface border border-edge p-4">
-          <h2 className="text-sm font-semibold mb-3">Grams per stoner</h2>
+        <section className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-4">
+          <h2 className="font-display text-sm font-bold mb-3">Grams per stoner</h2>
           <MemberGramsChart data={memberGrams} />
         </section>
       )}

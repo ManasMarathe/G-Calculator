@@ -17,13 +17,13 @@ import {
 // Single-series charts: one hue (lime accent), no legend — the card title
 // names the series. Grid/axes stay recessive.
 const ACCENT = "#a3e635";
-const GRID = "#1d4a2e";
-const INK_MUTED = "#8fb89a";
+const GRID = "#2e6b42";
+const INK_MUTED = "#9cc7a8";
 
 const tooltipStyle = {
-  backgroundColor: "#11331f",
-  border: "1px solid #1d4a2e",
-  borderRadius: 12,
+  backgroundColor: "#143a24",
+  border: "2px solid #2e6b42",
+  borderRadius: 16,
   color: "#e7f6e9",
   fontSize: 12,
 } as const;
@@ -50,9 +50,9 @@ export function RateTrendChart({ data }: { data: { date: string; rate: number }[
           type="monotone"
           dataKey="rate"
           stroke={ACCENT}
-          strokeWidth={2}
-          dot={{ r: 3, fill: ACCENT, strokeWidth: 0 }}
-          activeDot={{ r: 5 }}
+          strokeWidth={3}
+          dot={{ r: 3.5, fill: ACCENT, strokeWidth: 0 }}
+          activeDot={{ r: 6 }}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -80,7 +80,7 @@ export function CumulativeSmokedChart({ data }: { data: { date: string; total: n
           type="monotone"
           dataKey="total"
           stroke={ACCENT}
-          strokeWidth={2}
+          strokeWidth={3}
           fill="url(#smokeFill)"
         />
       </AreaChart>
@@ -97,10 +97,10 @@ export function MemberGramsChart({ data }: { data: { name: string; grams: number
         <YAxis type="category" dataKey="name" {...axisProps} width={90} />
         <Tooltip
           contentStyle={tooltipStyle}
-          cursor={{ fill: "#11331f" }}
+          cursor={{ fill: "#143a24" }}
           formatter={(v) => [`${Number(v).toFixed(2)}g`, "smoked"]}
         />
-        <Bar dataKey="grams" fill={ACCENT} radius={[0, 4, 4, 0]} barSize={18} />
+        <Bar dataKey="grams" fill={ACCENT} radius={[0, 8, 8, 0]} barSize={18} />
       </BarChart>
     </ResponsiveContainer>
   );

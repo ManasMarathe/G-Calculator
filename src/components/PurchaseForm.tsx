@@ -17,14 +17,14 @@ export default function PurchaseForm({ members }: { members: Member[] }) {
   return (
     <form
       action={formAction}
-      className="rounded-2xl bg-surface border border-edge p-4 flex flex-col gap-3"
+      className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-4 flex flex-col gap-3"
     >
       <label className="text-sm text-muted">
         Who&apos;s the plug hero? 🦸
         <select
           name="member_id"
           required
-          className="mt-1 w-full rounded-xl bg-surface-2 border border-edge px-3 py-3 text-foreground outline-none focus:border-accent"
+          className="mt-1 w-full rounded-xl bg-surface-2 border-2 border-edge px-3 py-3 text-foreground outline-none focus:border-accent"
         >
           <option value="">pick a member…</option>
           {members.map((m) => (
@@ -37,7 +37,7 @@ export default function PurchaseForm({ members }: { members: Member[] }) {
 
       <div className="grid grid-cols-2 gap-3">
         <label className="text-sm text-muted">
-          Grams 🌿
+          Grams 🥦
           <input
             name="grams"
             type="number"
@@ -47,7 +47,7 @@ export default function PurchaseForm({ members }: { members: Member[] }) {
             placeholder="3.5"
             value={grams}
             onChange={(e) => setGrams(e.target.value)}
-            className="mt-1 w-full rounded-xl bg-surface-2 border border-edge px-3 py-3 outline-none focus:border-accent"
+            className="mt-1 w-full rounded-xl bg-surface-2 border-2 border-edge px-3 py-3 outline-none focus:border-accent"
           />
         </label>
         <label className="text-sm text-muted">
@@ -61,7 +61,7 @@ export default function PurchaseForm({ members }: { members: Member[] }) {
             placeholder="900"
             value={cost}
             onChange={(e) => setCost(e.target.value)}
-            className="mt-1 w-full rounded-xl bg-surface-2 border border-edge px-3 py-3 outline-none focus:border-accent"
+            className="mt-1 w-full rounded-xl bg-surface-2 border-2 border-edge px-3 py-3 outline-none focus:border-accent"
           />
         </label>
       </div>
@@ -69,7 +69,7 @@ export default function PurchaseForm({ members }: { members: Member[] }) {
       <input
         name="note"
         placeholder="note (optional) — e.g. 'the good stuff'"
-        className="w-full rounded-xl bg-surface-2 border border-edge px-3 py-3 text-sm outline-none focus:border-accent placeholder:text-muted/50"
+        className="w-full rounded-xl bg-surface-2 border-2 border-edge px-3 py-3 text-sm outline-none focus:border-accent placeholder:text-muted/50"
       />
 
       {rate !== null && (
@@ -77,12 +77,12 @@ export default function PurchaseForm({ members }: { members: Member[] }) {
           that&apos;s {inrPrecise(rate)}/g — {rate > 1000 ? "premium shelf huh 💎" : "solid deal 👌"}
         </p>
       )}
-      {state?.error && <p className="text-danger text-sm">{state.error}</p>}
+      {state?.error && <p className="animate-wiggle text-danger text-sm">{state.error}</p>}
 
       <button
         type="submit"
         disabled={pending}
-        className="rounded-xl bg-accent text-background font-bold py-3.5 active:scale-95 transition disabled:opacity-50"
+        className="rounded-2xl bg-accent text-background font-display font-bold py-3.5 border-2 border-ink shadow-sticker active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition disabled:opacity-50"
       >
         {pending ? "stashing…" : "Add to jar 🫙"}
       </button>

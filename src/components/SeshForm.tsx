@@ -35,14 +35,14 @@ export default function SeshForm({
   return (
     <form
       action={formAction}
-      className="rounded-2xl bg-surface border border-edge p-4 flex flex-col gap-4"
+      className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-4 flex flex-col gap-4"
     >
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-surface-2 border border-edge px-3 py-3">
+        <div className="rounded-xl bg-surface-2 border-2 border-edge px-3 py-3">
           <p className="text-xs text-muted">Jar before (locked 🔒)</p>
-          <p className="text-xl font-bold">{grams(stash)}</p>
+          <p className="font-display text-xl font-bold">{grams(stash)}</p>
         </div>
-        <label className="text-xs text-muted rounded-xl bg-surface-2 border border-edge px-3 py-3 focus-within:border-accent">
+        <label className="text-xs text-muted rounded-xl bg-surface-2 border-2 border-edge px-3 py-3 focus-within:border-accent">
           Jar after the sesh
           <input
             name="end_grams"
@@ -54,12 +54,12 @@ export default function SeshForm({
             placeholder="0.0"
             value={end}
             onChange={(e) => setEnd(e.target.value)}
-            className="w-full bg-transparent text-xl font-bold text-foreground outline-none placeholder:text-muted/40"
+            className="w-full bg-transparent font-display text-xl font-bold text-foreground outline-none placeholder:text-muted/40"
           />
         </label>
       </div>
       {end !== "" && !validEnd && (
-        <p className="text-danger text-sm -mt-2">
+        <p className="animate-wiggle text-danger text-sm -mt-2">
           {endNum >= stash
             ? "You just stared at it? 👀 End weight must be less than the start"
             : "That's not a real weight, bro"}
@@ -76,9 +76,9 @@ export default function SeshForm({
                 key={m.id}
                 type="button"
                 onClick={() => toggle(m.id)}
-                className={`rounded-full px-3.5 py-2 text-sm border transition active:scale-95 ${
+                className={`rounded-full px-3.5 py-2 text-sm border-2 transition active:scale-95 ${
                   on
-                    ? "bg-accent text-background border-accent font-bold"
+                    ? "bg-accent text-background border-ink shadow-sticker-sm font-bold -rotate-1"
                     : "bg-surface-2 border-edge text-muted"
                 }`}
               >
@@ -95,11 +95,11 @@ export default function SeshForm({
       <input
         name="note"
         placeholder="note (optional) — e.g. 'friday rooftop'"
-        className="w-full rounded-xl bg-surface-2 border border-edge px-3 py-3 text-sm outline-none focus:border-accent placeholder:text-muted/50"
+        className="w-full rounded-xl bg-surface-2 border-2 border-edge px-3 py-3 text-sm outline-none focus:border-accent placeholder:text-muted/50"
       />
 
       {smoked !== null && (
-        <div className="rounded-xl bg-surface-2 border border-accent/30 px-4 py-3 text-sm">
+        <div className="rounded-xl bg-surface-2 border-2 border-accent/50 shadow-sticker-sm px-4 py-3 text-sm">
           <span className="font-bold text-accent">{grams(smoked)}</span> 💨 ≈{" "}
           <span className="font-bold">{inr(cost!)}</span>
           {perHead !== null && (
@@ -111,12 +111,12 @@ export default function SeshForm({
           )}
         </div>
       )}
-      {state?.error && <p className="text-danger text-sm">{state.error}</p>}
+      {state?.error && <p className="animate-wiggle text-danger text-sm">{state.error}</p>}
 
       <button
         type="submit"
         disabled={pending || !validEnd || picked.size === 0}
-        className="rounded-xl bg-accent text-background font-bold text-lg py-4 active:scale-95 transition disabled:opacity-40"
+        className="rounded-2xl bg-accent text-background font-display font-bold text-lg py-4 border-2 border-ink shadow-sticker active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition disabled:opacity-40"
       >
         {pending ? "logging…" : "Log the sesh 🔥"}
       </button>

@@ -18,7 +18,7 @@ export default function DeleteButton({
       onClick={() => {
         if (window.confirm(confirmText)) startTransition(() => action());
       }}
-      className="text-muted hover:text-danger transition text-base px-2 py-1 disabled:opacity-40"
+      className="text-muted hover:text-danger hover:animate-wiggle transition text-base px-2 py-1 disabled:opacity-40"
       aria-label="Delete"
     >
       {pending ? "…" : "🗑"}

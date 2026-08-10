@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0d2b1a"/>
+  <g transform="rotate(-8 32 36)" stroke="#02100a" stroke-width="2.5" stroke-linejoin="round" fill="#a3e635">
+    <!-- five cartoon leaf lobes radiating from the base -->
+    <path transform="rotate(-70 32 40)" d="M32 40 Q26 28 32 12 Q38 28 32 40 Z"/>
+    <path transform="rotate(70 32 40)" d="M32 40 Q26 28 32 12 Q38 28 32 40 Z"/>
+    <path transform="rotate(-38 32 40)" d="M32 40 Q25 24 32 6 Q39 24 32 40 Z"/>
+    <path transform="rotate(38 32 40)" d="M32 40 Q25 24 32 6 Q39 24 32 40 Z"/>
+    <path d="M32 40 Q24 22 32 2 Q40 22 32 40 Z"/>
+    <path d="M32 40 L32 52" fill="none" stroke-linecap="round" stroke-width="3.5"/>
+  </g>
+</svg>

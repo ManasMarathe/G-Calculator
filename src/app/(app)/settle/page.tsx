@@ -15,17 +15,17 @@ export default async function SettlePage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-bold">Settle up 🤝</h1>
+        <h1 className="font-display text-3xl font-extrabold">Settle up 🤝</h1>
         <p className="text-muted text-sm mt-1">
           buys earn credit, seshes cost your share — the {grams(stash)} still in the jar (
-          {inr(stashValue)}) counts as everyone&apos;s 🌿
+          {inr(stashValue)}) counts as everyone&apos;s 🍃
         </p>
       </header>
 
       {members.length === 0 ? (
-        <div className="rounded-2xl bg-surface border border-edge p-6 text-center">
-          <div className="text-4xl mb-2">👥</div>
-          <p className="font-semibold">Nobody to settle with</p>
+        <div className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-6 text-center">
+          <div className="text-4xl mb-2 inline-block animate-bob">👥</div>
+          <p className="font-display font-bold">Nobody to settle with</p>
           <p className="text-muted text-sm mt-1">add your circle in the treasury</p>
         </div>
       ) : (
@@ -36,7 +36,7 @@ export default async function SettlePage() {
               {sorted.map((b) => (
                 <li
                   key={b.member.id}
-                  className="rounded-2xl bg-surface border border-edge px-4 py-3 flex items-center gap-3"
+                  className="rounded-3xl bg-surface border-2 border-edge shadow-sticker-sm px-4 py-3 flex items-center gap-3"
                 >
                   <span className="text-2xl">{b.member.emoji}</span>
                   <div className="flex-1 min-w-0">
@@ -70,9 +70,9 @@ export default async function SettlePage() {
               Squash the debts
             </h2>
             {transfers.length === 0 ? (
-              <div className="rounded-2xl bg-surface border border-edge p-6 text-center">
-                <div className="text-4xl mb-2">🧘</div>
-                <p className="font-semibold">All square</p>
+              <div className="rounded-3xl bg-surface border-2 border-edge shadow-sticker p-6 text-center">
+                <div className="text-4xl mb-2 inline-block animate-bob">🧘</div>
+                <p className="font-display font-bold">All square</p>
                 <p className="text-muted text-sm mt-1">perfect harmony in the circle</p>
               </div>
             ) : (
@@ -80,7 +80,7 @@ export default async function SettlePage() {
                 {transfers.map((t, i) => (
                   <li
                     key={i}
-                    className="rounded-2xl bg-surface border border-accent/30 px-4 py-3.5 flex items-center justify-between"
+                    className="rounded-3xl bg-surface border-2 border-accent/50 shadow-sticker px-4 py-3.5 flex items-center justify-between"
                   >
                     <span>
                       {t.from.emoji} <span className="font-semibold">{t.from.name}</span>

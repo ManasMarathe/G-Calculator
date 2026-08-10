@@ -31,7 +31,7 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
 
 export async function addMember(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const name = String(formData.get("name") ?? "").trim();
-  const emoji = String(formData.get("emoji") ?? "").trim() || "🌿";
+  const emoji = String(formData.get("emoji") ?? "").trim() || "🥦";
   if (!name) return { error: "A stoner needs a name" };
   if (name.length > 30) return { error: "That name is way too long, bro" };
 
@@ -116,7 +116,7 @@ export async function createSesh(_prev: ActionState, formData: FormData): Promis
     return { error: pErr.message };
   }
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/?celebrate=1");
 }
 
 export async function deleteSesh(id: string): Promise<void> {
