@@ -21,9 +21,11 @@ export function computeTrophies(
   members: Member[],
   purchases: Purchase[],
   seshes: Sesh[],
-  sales: Sale[]
+  sales: Sale[],
+  // Callers that already ran computeBalances can pass it in to skip the
+  // O(members × seshes) pass here.
+  balances = computeBalances(members, purchases, seshes, sales)
 ): Trophy[] {
-  const balances = computeBalances(members, purchases, seshes, sales);
   const trophies: Trophy[] = [];
 
   const refilled = top(

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PIN_COOKIE, sha256Hex } from "./auth";
@@ -41,7 +41,7 @@ export async function addMember(_prev: ActionState, formData: FormData): Promise
       error: error.code === "23505" ? `${name} is already in the circle 👀` : error.message,
     };
   }
-  revalidatePath("/", "layout");
+  updateTag("jar");
   return null;
 }
 
@@ -59,7 +59,7 @@ export async function addPurchase(_prev: ActionState, formData: FormData): Promi
     .from("purchases")
     .insert({ member_id, grams: round2(grams), total_cost: round2(total_cost), note });
   if (error) return { error: error.message };
-  revalidatePath("/", "layout");
+  updateTag("jar");
   return null;
 }
 
@@ -76,7 +76,7 @@ export async function deletePurchase(id: string): Promise<void> {
   if (stashAfter < 0) return;
 
   await getSupabase().from("purchases").delete().eq("id", id);
-  revalidatePath("/", "layout");
+  updateTag("jar");
 }
 
 export async function createSesh(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -126,14 +126,14 @@ export async function createSesh(_prev: ActionState, formData: FormData): Promis
     await supabase.from("seshes").delete().eq("id", sesh.id);
     return { error: pErr.message };
   }
-  revalidatePath("/", "layout");
+  updateTag("jar");
   redirect("/?celebrate=1");
 }
 
 export async function deleteSesh(id: string): Promise<void> {
   // Participants cascade via FK; grams simply flow back into the stash.
   await getSupabase().from("seshes").delete().eq("id", id);
-  revalidatePath("/", "layout");
+  updateTag("jar");
 }
 
 export async function createSale(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -202,7 +202,7 @@ export async function createSale(_prev: ActionState, formData: FormData): Promis
     await supabase.from("sales").delete().eq("id", sale.id);
     return { error: bErr.message };
   }
-  revalidatePath("/", "layout");
+  updateTag("jar");
   return null;
 }
 
@@ -210,5 +210,5 @@ export async function deleteSale(id: string): Promise<void> {
   // Beneficiaries cascade via FK; the grams flow back into the stash, so this
   // can never drive it negative — no guard needed.
   await getSupabase().from("sales").delete().eq("id", id);
-  revalidatePath("/", "layout");
+  updateTag("jar");
 }

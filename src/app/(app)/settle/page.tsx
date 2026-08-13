@@ -1,10 +1,12 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { computeBalances, settleDebts, stashGrams, avgCostPerGram } from "@/lib/calc";
 import { grams, inr } from "@/lib/format";
 import { getEverything } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
-
 export default async function SettlePage() {
+  "use cache";
+  cacheLife("days");
+  cacheTag("jar");
   const { members, purchases, seshes, sales } = await getEverything();
   const balances = computeBalances(members, purchases, seshes, sales);
   const transfers = settleDebts(balances);

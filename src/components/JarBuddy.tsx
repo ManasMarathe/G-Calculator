@@ -39,31 +39,19 @@ export default function JarBuddy({ pct }: { pct: number }) {
         <g style={{ transform: `translateY(${liquidShift}px)` }}>
           <g className="animate-rise" style={{ transformBox: "fill-box" }}>
             <rect x="22" y="32" width="76" height="110" fill="url(#jb-liquid)" />
+            {/* One slow wave only — SVG-interior animation repaints on the main
+                thread every frame, so each extra animated node here is a
+                permanent CPU tax. */}
             <path
               className="animate-wave"
-              style={{ transformBox: "fill-box" }}
+              style={{ transformBox: "fill-box", animationDuration: "6s" }}
               d="M22 34 q17 -10 34 0 t34 0 t34 0 t34 0 t34 0 t34 0 v14 h-204 z"
               fill="var(--accent)"
             />
-            <path
-              className="animate-wave"
-              style={{ transformBox: "fill-box", animationDelay: "-1.5s" }}
-              d="M22 36 q17 -9 34 0 t34 0 t34 0 t34 0 t34 0 t34 0 v14 h-204 z"
-              fill="var(--accent-deep)"
-              opacity="0.55"
-            />
             {fill > 5 && (
               <>
-                <circle className="animate-bob" cx="44" cy="112" r="3.5" fill="var(--accent)" opacity="0.7" />
-                <circle
-                  className="animate-bob"
-                  style={{ animationDelay: "-1.2s" }}
-                  cx="76"
-                  cy="120"
-                  r="2.5"
-                  fill="var(--accent)"
-                  opacity="0.6"
-                />
+                <circle cx="44" cy="112" r="3.5" fill="var(--accent)" opacity="0.7" />
+                <circle cx="76" cy="120" r="2.5" fill="var(--accent)" opacity="0.6" />
               </>
             )}
           </g>
@@ -96,7 +84,7 @@ export default function JarBuddy({ pct }: { pct: number }) {
       </g>
 
       {/* buddy's leaf */}
-      <text x="92" y="12" fontSize="16" className="animate-bob" style={{ transformBox: "fill-box" }}>
+      <text x="92" y="12" fontSize="16">
         🍃
       </text>
     </svg>

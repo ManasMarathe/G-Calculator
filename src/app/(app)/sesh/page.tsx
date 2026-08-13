@@ -4,11 +4,13 @@ import SeshForm from "@/components/SeshForm";
 import { deleteSesh } from "@/lib/actions";
 import { avgCostPerGram, seshCostPerHead, stashGrams } from "@/lib/calc";
 import { grams, inr, inrPrecise, shortDateTime } from "@/lib/format";
+import { cacheLife, cacheTag } from "next/cache";
 import { getEverything } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
-
 export default async function SeshPage() {
+  "use cache";
+  cacheLife("days");
+  cacheTag("jar");
   const { members, purchases, seshes, sales } = await getEverything();
   const stash = stashGrams(purchases, seshes, sales);
   const rate = avgCostPerGram(purchases);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { grams, inr, inrPrecise } from "@/lib/format";
 
 const FORMATTERS = {
@@ -21,8 +21,9 @@ export default function CountUp({
   className?: string;
   durationMs?: number;
 }) {
-  // First render (server + hydration) shows the final value — no layout shift.
-  const [shown, setShown] = useState(value);
+  // The animation writes textContent directly — setState per rAF frame would
+  // re-render React ~54 times per instance right as the page hydrates.
+  const ref = useRef<HTMLSpanElement>(null);
   const ran = useRef(false);
 
   useEffect(() => {
@@ -30,20 +31,27 @@ export default function CountUp({
     ran.current = true;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (value === 0) return;
+    const el = ref.current;
+    if (!el) return;
 
+    const format = FORMATTERS[kind];
     const start = performance.now();
     let raf: number;
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / durationMs);
       const eased = 1 - Math.pow(1 - t, 3);
-      setShown(value * eased);
+      el.textContent = format(value * eased);
       if (t < 1) raf = requestAnimationFrame(tick);
-      else setShown(value);
     };
-    setShown(0);
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [value, durationMs]);
+  }, [value, kind, durationMs]);
 
-  return <span className={`tabular-nums ${className ?? ""}`}>{FORMATTERS[kind](shown)}</span>;
+  // Server render and hydration show the final value — no layout shift, and
+  // reduced-motion users simply keep it.
+  return (
+    <span ref={ref} className={`tabular-nums ${className ?? ""}`}>
+      {FORMATTERS[kind](value)}
+    </span>
+  );
 }

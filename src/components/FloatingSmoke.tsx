@@ -12,7 +12,7 @@ export default function FloatingSmoke() {
       {WISPS.map((w, i) => (
         <span
           key={i}
-          className={`absolute animate-drift opacity-30 blur-[1px] ${w.size}`}
+          className={`absolute animate-drift opacity-30 ${w.size}`}
           style={{ top: w.top, animationDelay: w.delay, animationDuration: w.duration }}
         >
           {w.emoji}

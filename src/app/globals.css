@@ -29,7 +29,7 @@
   --color-sky: var(--sky);
   --color-ink: var(--ink);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --font-display: var(--font-baloo);
   --shadow-sticker: 4px 4px 0 0 var(--ink);
   --shadow-sticker-sm: 2px 2px 0 0 var(--ink);

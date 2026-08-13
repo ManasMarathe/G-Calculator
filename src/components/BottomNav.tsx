@@ -15,7 +15,9 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 border-t-2 border-edge bg-surface/90 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
+    // No backdrop-blur here: a fixed blur layer over the animated page makes
+    // the compositor re-sample every frame on every route.
+    <nav className="fixed bottom-0 inset-x-0 z-50 border-t-2 border-edge bg-surface/95">
       <div className="max-w-md mx-auto grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
         {TABS.map((tab) => {
           const active = pathname === tab.href;

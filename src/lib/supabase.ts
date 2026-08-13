@@ -1,9 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Server-only client using the service-role key (RLS is enabled with no
 // policies, so this key is the only way in). Never import from a client
 // component.
+let client: SupabaseClient | undefined;
+
 export function getSupabase() {
+  if (client) return client;
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
@@ -11,5 +14,6 @@ export function getSupabase() {
       "Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY env vars"
     );
   }
-  return createClient(url, key, { auth: { persistSession: false } });
+  client = createClient(url, key, { auth: { persistSession: false } });
+  return client;
 }

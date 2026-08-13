@@ -11,11 +11,13 @@ import {
   stashGrams,
 } from "@/lib/calc";
 import { grams, inr, inrPrecise, shortDate, shortDateTime } from "@/lib/format";
+import { cacheLife, cacheTag } from "next/cache";
 import { getEverything } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
-
 export default async function TreasuryPage() {
+  "use cache";
+  cacheLife("days");
+  cacheTag("jar");
   const { members, purchases, seshes, sales } = await getEverything();
   const stash = stashGrams(purchases, seshes, sales);
   const rate = avgCostPerGram(purchases);

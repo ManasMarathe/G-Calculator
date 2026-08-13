@@ -1,4 +1,6 @@
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
+import { Suspense } from "react";
 import Celebration from "@/components/Celebration";
 import CountUp from "@/components/CountUp";
 import FloatingSmoke from "@/components/FloatingSmoke";
@@ -14,10 +16,10 @@ import {
 import { grams, inr, inrPrecise, shortDateTime } from "@/lib/format";
 import { getEverything } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
-
-export default async function Dashboard({ searchParams }: PageProps<"/">) {
-  const celebrate = (await searchParams).celebrate === "1";
+export default async function Dashboard() {
+  "use cache";
+  cacheLife("days");
+  cacheTag("jar");
   const { purchases, seshes, sales } = await getEverything();
   const stash = stashGrams(purchases, seshes, sales);
   const rate = avgCostPerGram(purchases);
@@ -25,11 +27,19 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
   const maxStash = activity.reduce((m, a) => Math.max(m, a.stashAfter), 0);
   const totalSmoked = seshes.reduce((s, x) => s + x.grams_smoked, 0);
   const totalSpent = purchases.reduce((s, p) => s + p.total_cost, 0);
-  const newestFirst = [...activity].reverse();
+  // The stats above use full history; the rendered list doesn't need to grow
+  // forever with it.
+  const LEDGER_LIMIT = 40;
+  const newestFirst = [...activity].reverse().slice(0, LEDGER_LIMIT);
+  const hiddenCount = activity.length - newestFirst.length;
 
   return (
     <div className="flex flex-col gap-6">
-      {celebrate && <Celebration milestone={newMilestone(seshes)} />}
+      {/* Gates itself on ?celebrate=1 via useSearchParams, so the page itself
+          never touches request data and stays fully cacheable. */}
+      <Suspense fallback={null}>
+        <Celebration milestone={newMilestone(seshes)} />
+      </Suspense>
 
       <header className="relative overflow-hidden -mx-4 px-4 py-2">
         <FloatingSmoke />
@@ -144,6 +154,12 @@ export default async function Dashboard({ searchParams }: PageProps<"/">) {
                 </li>
               );
             })}
+            {hiddenCount > 0 && (
+              <li className="text-center text-xs text-muted py-2">
+                showing the last {LEDGER_LIMIT} — {hiddenCount} older entr
+                {hiddenCount === 1 ? "y" : "ies"} in the books 📚
+              </li>
+            )}
           </ul>
         )}
       </section>

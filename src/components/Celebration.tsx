@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 const CAST = ["🍃", "🥦", "💨", "🔥"];
@@ -16,12 +17,15 @@ type Piece = {
 };
 
 export default function Celebration({ milestone }: { milestone?: string | null }) {
+  // The dashboard is a cached page, so it can't read searchParams itself —
+  // the party gate lives here on the client instead.
+  const celebrate = useSearchParams().get("celebrate") === "1";
   const ran = useRef(false);
   const [pieces, setPieces] = useState<Piece[] | null>(null);
   const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
-    if (ran.current) return;
+    if (!celebrate || ran.current) return;
     ran.current = true;
     // Clean the URL so refresh/back never re-fires the party.
     window.history.replaceState(null, "", window.location.pathname);
@@ -47,7 +51,7 @@ export default function Celebration({ milestone }: { milestone?: string | null }
       clearTimeout(toastTimer);
       clearTimeout(confettiTimer);
     };
-  }, [milestone]);
+  }, [celebrate, milestone]);
 
   return (
     <>

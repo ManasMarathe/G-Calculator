@@ -1,5 +1,5 @@
 import CountUp from "@/components/CountUp";
-import { CumulativeSmokedChart, MemberGramsChart, RateTrendChart } from "@/components/Charts";
+import { CumulativeSmokedChart, MemberGramsChart, RateTrendChart } from "@/components/ChartsLazy";
 import Trophies from "@/components/Trophies";
 import {
   computeBalances,
@@ -10,14 +10,19 @@ import {
   avgCostPerGram,
 } from "@/lib/calc";
 import { grams, inr, inrPrecise, shortDate } from "@/lib/format";
+import { cacheLife, cacheTag } from "next/cache";
 import { getEverything } from "@/lib/queries";
 import { computeTrophies } from "@/lib/trophies";
 
-export const dynamic = "force-dynamic";
-
 export default async function StatsPage() {
+  // "hours" (not "days") so the Date.now()-based burn-rate/runway numbers
+  // below refresh on their own even when nobody logs anything.
+  "use cache";
+  cacheLife("hours");
+  cacheTag("jar");
   const { members, purchases, seshes, sales } = await getEverything();
-  const trophies = computeTrophies(members, purchases, seshes, sales);
+  const balances = computeBalances(members, purchases, seshes, sales);
+  const trophies = computeTrophies(members, purchases, seshes, sales, balances);
 
   if (purchases.length === 0 && seshes.length === 0) {
     return (
@@ -33,7 +38,6 @@ export default async function StatsPage() {
     );
   }
 
-  const balances = computeBalances(members, purchases, seshes, sales);
   const totalSmoked = seshes.reduce((s, x) => s + x.grams_smoked, 0);
   const soldGrams = sales.reduce((s, x) => s + x.grams, 0);
   const totalRevenue = sales.reduce((s, x) => s + x.total_price, 0);
