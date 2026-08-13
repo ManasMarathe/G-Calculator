@@ -1,3 +1,10 @@
+export type Jar = {
+  id: string;
+  name: string;
+  emoji: string;
+  created_at: string;
+};
+
 export type Member = {
   id: string;
   name: string;
@@ -7,6 +14,7 @@ export type Member = {
 
 export type Purchase = {
   id: string;
+  jar_id: string;
   member_id: string;
   grams: number;
   total_cost: number;
@@ -17,6 +25,7 @@ export type Purchase = {
 
 export type Sesh = {
   id: string;
+  jar_id: string;
   start_grams: number;
   end_grams: number;
   grams_smoked: number;
@@ -28,6 +37,7 @@ export type Sesh = {
 
 export type Sale = {
   id: string;
+  jar_id: string;
   sold_by: string;
   grams: number;
   total_price: number;

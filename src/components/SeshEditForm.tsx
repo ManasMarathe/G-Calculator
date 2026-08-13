@@ -1,29 +1,23 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { createSesh } from "@/lib/actions";
+import { updateSesh } from "@/lib/actions";
 import { grams, inr } from "@/lib/format";
-import type { Member } from "@/lib/types";
+import type { Member, Sesh } from "@/lib/types";
 
-export default function SeshForm({
-  jarId,
-  stash,
-  rate,
-  members,
-}: {
-  jarId: string;
-  stash: number;
-  rate: number;
-  members: Member[];
-}) {
-  const [state, formAction, pending] = useActionState(createSesh.bind(null, jarId), null);
-  const [end, setEnd] = useState("");
-  const [picked, setPicked] = useState<Set<string>>(new Set());
+export default function SeshEditForm({ sesh, members }: { sesh: Sesh; members: Member[] }) {
+  const [state, formAction, pending] = useActionState(updateSesh.bind(null, sesh.id), null);
+  const [end, setEnd] = useState(String(sesh.end_grams));
+  const [picked, setPicked] = useState<Set<string>>(
+    () => new Set(sesh.participants.map((m) => m.id))
+  );
+  const [code, setCode] = useState("");
 
   const endNum = Number(end);
-  const validEnd = end !== "" && Number.isFinite(endNum) && endNum >= 0 && endNum < stash;
-  const smoked = validEnd ? stash - endNum : null;
-  const cost = smoked !== null ? smoked * rate : null;
+  const validEnd = end !== "" && Number.isFinite(endNum) && endNum >= 0 && endNum < sesh.start_grams;
+  const smoked = validEnd ? sesh.start_grams - endNum : null;
+  // Re-price at the sesh's snapshotted rate, not today's jar average.
+  const cost = smoked !== null ? smoked * sesh.cost_per_gram : null;
   const perHead = cost !== null && picked.size > 0 ? cost / picked.size : null;
 
   const toggle = (id: string) =>
@@ -42,7 +36,7 @@ export default function SeshForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-surface-2 border-2 border-edge px-3 py-3">
           <p className="text-xs text-muted">Jar before (locked 🔒)</p>
-          <p className="font-display text-xl font-bold">{grams(stash)}</p>
+          <p className="font-display text-xl font-bold">{grams(sesh.start_grams)}</p>
         </div>
         <label className="text-xs text-muted rounded-xl bg-surface-2 border-2 border-edge px-3 py-3 focus-within:border-accent">
           Jar after the sesh
@@ -51,7 +45,7 @@ export default function SeshForm({
             type="number"
             step="0.01"
             min="0"
-            max={stash}
+            max={sesh.start_grams}
             required
             placeholder="0.0"
             value={end}
@@ -62,7 +56,7 @@ export default function SeshForm({
       </div>
       {end !== "" && !validEnd && (
         <p className="animate-wiggle text-danger text-sm -mt-2">
-          {endNum >= stash
+          {endNum >= sesh.start_grams
             ? "You just stared at it? 👀 End weight must be less than the start"
             : "That's not a real weight, bro"}
         </p>
@@ -96,6 +90,7 @@ export default function SeshForm({
 
       <input
         name="note"
+        defaultValue={sesh.note ?? ""}
         placeholder="note (optional) — e.g. 'friday rooftop'"
         className="w-full rounded-xl bg-surface-2 border-2 border-edge px-3 py-3 text-sm outline-none focus:border-accent placeholder:text-muted/50"
       />
@@ -113,14 +108,29 @@ export default function SeshForm({
           )}
         </div>
       )}
+
+      <label className="text-xs text-muted rounded-xl bg-surface-2 border-2 border-edge px-3 py-3 focus-within:border-accent">
+        admin code to save 🔐
+        <input
+          name="admin_code"
+          type="password"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="••••"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          className="w-full bg-transparent font-display text-xl font-bold text-foreground outline-none placeholder:text-muted/40"
+        />
+      </label>
+
       {state?.error && <p className="animate-wiggle text-danger text-sm">{state.error}</p>}
 
       <button
         type="submit"
-        disabled={pending || !validEnd || picked.size === 0}
+        disabled={pending || !validEnd || picked.size === 0 || code.trim() === ""}
         className="rounded-2xl bg-accent text-background font-display font-bold text-lg py-4 border-2 border-ink shadow-sticker active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition disabled:opacity-40"
       >
-        {pending ? "logging…" : "Log the sesh 🔥"}
+        {pending ? "saving…" : "Save the edit ✍️"}
       </button>
     </form>
   );

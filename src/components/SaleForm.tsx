@@ -6,15 +6,17 @@ import { grams, inr, inrPrecise } from "@/lib/format";
 import type { Member } from "@/lib/types";
 
 export default function SaleForm({
+  jarId,
   stash,
   rate,
   members,
 }: {
+  jarId: string;
   stash: number;
   rate: number;
   members: Member[];
 }) {
-  const [state, formAction, pending] = useActionState(createSale, null);
+  const [state, formAction, pending] = useActionState(createSale.bind(null, jarId), null);
   const formRef = useRef<HTMLFormElement>(null);
   const submitted = useRef(false);
   const [amount, setAmount] = useState("");

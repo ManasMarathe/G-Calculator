@@ -5,8 +5,8 @@ import { addPurchase } from "@/lib/actions";
 import { inrPrecise } from "@/lib/format";
 import type { Member } from "@/lib/types";
 
-export default function PurchaseForm({ members }: { members: Member[] }) {
-  const [state, formAction, pending] = useActionState(addPurchase, null);
+export default function PurchaseForm({ jarId, members }: { jarId: string; members: Member[] }) {
+  const [state, formAction, pending] = useActionState(addPurchase.bind(null, jarId), null);
   const [grams, setGrams] = useState("");
   const [cost, setCost] = useState("");
 

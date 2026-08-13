@@ -12,13 +12,23 @@ import {
 } from "@/lib/calc";
 import { grams, inr, inrPrecise, shortDate, shortDateTime } from "@/lib/format";
 import { cacheLife, cacheTag } from "next/cache";
-import { getEverything } from "@/lib/queries";
+import { notFound } from "next/navigation";
+import { getEverything, getJarById } from "@/lib/queries";
 
-export default async function TreasuryPage() {
+export default async function TreasuryPage({ params }: { params: Promise<{ jarId: string }> }) {
+  const { jarId } = await params;
+  return <TreasuryInner jarId={jarId} />;
+}
+
+async function TreasuryInner({ jarId }: { jarId: string }) {
   "use cache";
   cacheLife("days");
   cacheTag("jar");
-  const { members, purchases, seshes, sales } = await getEverything();
+  const [jar, { members, purchases, seshes, sales }] = await Promise.all([
+    getJarById(jarId),
+    getEverything(jarId),
+  ]);
+  if (!jar) notFound();
   const stash = stashGrams(purchases, seshes, sales);
   const rate = avgCostPerGram(purchases);
   const totalSpent = purchases.reduce((s, p) => s + p.total_cost, 0);
@@ -58,7 +68,7 @@ export default async function TreasuryPage() {
           <p className="text-muted text-sm mt-1">can&apos;t split a jar with nobody</p>
         </div>
       ) : (
-        <PurchaseForm members={members} />
+        <PurchaseForm jarId={jarId} members={members} />
       )}
 
       <section className="flex flex-col gap-2">
@@ -122,7 +132,7 @@ export default async function TreasuryPage() {
           profit splits equally between whoever you pick
         </p>
         {members.length > 0 && stash > 0 && rate > 0 ? (
-          <SaleForm stash={stash} rate={rate} members={members} />
+          <SaleForm jarId={jarId} stash={stash} rate={rate} members={members} />
         ) : (
           <p className="text-muted text-sm rounded-3xl bg-surface border-2 border-edge shadow-sticker p-4">
             {members.length === 0

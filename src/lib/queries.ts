@@ -1,10 +1,19 @@
 import { getSupabase } from "./supabase";
-import type { Member, Purchase, Sale, Sesh } from "./types";
+import type { Jar, Member, Purchase, Sale, Sesh } from "./types";
 
 // Supabase returns Postgres `numeric` columns as strings — coerce once here
 // so every consumer works in plain numbers.
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+function toJar(row: any): Jar {
+  return {
+    id: row.id,
+    name: row.name,
+    emoji: row.emoji,
+    created_at: row.created_at,
+  };
+}
 
 function toMember(row: any): Member {
   return {
@@ -18,6 +27,7 @@ function toMember(row: any): Member {
 function toPurchase(row: any): Purchase {
   return {
     id: row.id,
+    jar_id: row.jar_id,
     member_id: row.member_id,
     grams: Number(row.grams),
     total_cost: Number(row.total_cost),
@@ -30,6 +40,7 @@ function toPurchase(row: any): Purchase {
 function toSesh(row: any): Sesh {
   return {
     id: row.id,
+    jar_id: row.jar_id,
     start_grams: Number(row.start_grams),
     end_grams: Number(row.end_grams),
     grams_smoked: Number(row.grams_smoked),
@@ -43,6 +54,7 @@ function toSesh(row: any): Sesh {
 function toSale(row: any): Sale {
   return {
     id: row.id,
+    jar_id: row.jar_id,
     sold_by: row.sold_by,
     grams: Number(row.grams),
     total_price: Number(row.total_price),
@@ -54,6 +66,29 @@ function toSale(row: any): Sale {
   };
 }
 
+export async function getJars(): Promise<Jar[]> {
+  const { data, error } = await getSupabase()
+    .from("jars")
+    .select("*")
+    .order("created_at");
+  if (error) throw new Error(`getJars: ${error.message}`);
+  return (data ?? []).map(toJar);
+}
+
+export async function getJarById(id: string): Promise<Jar | null> {
+  const { data, error } = await getSupabase()
+    .from("jars")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    // 22P02 = malformed uuid in the URL — that's a 404, not an outage.
+    if (error.code === "22P02") return null;
+    throw new Error(`getJarById: ${error.message}`);
+  }
+  return data ? toJar(data) : null;
+}
+
 export async function getMembers(): Promise<Member[]> {
   const { data, error } = await getSupabase()
     .from("members")
@@ -63,43 +98,64 @@ export async function getMembers(): Promise<Member[]> {
   return (data ?? []).map(toMember);
 }
 
-export async function getPurchases(): Promise<Purchase[]> {
-  const { data, error } = await getSupabase()
+// jarId scopes to one jar; omit it for all jars (the picker's overview).
+export async function getPurchases(jarId?: string): Promise<Purchase[]> {
+  let q = getSupabase()
     .from("purchases")
     .select("*, member:members(*)")
     .order("created_at");
+  if (jarId) q = q.eq("jar_id", jarId);
+  const { data, error } = await q;
   if (error) throw new Error(`getPurchases: ${error.message}`);
   return (data ?? []).map(toPurchase);
 }
 
-export async function getSeshes(): Promise<Sesh[]> {
-  const { data, error } = await getSupabase()
+export async function getSeshes(jarId?: string): Promise<Sesh[]> {
+  let q = getSupabase()
     .from("seshes")
     .select("*, sesh_participants(member:members(*))")
     .order("created_at");
+  if (jarId) q = q.eq("jar_id", jarId);
+  const { data, error } = await q;
   if (error) throw new Error(`getSeshes: ${error.message}`);
   return (data ?? []).map(toSesh);
 }
 
-export async function getSales(): Promise<Sale[]> {
+export async function getSeshById(id: string): Promise<Sesh | null> {
+  const { data, error } = await getSupabase()
+    .from("seshes")
+    .select("*, sesh_participants(member:members(*))")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    // 22P02 = malformed uuid in the URL — that's a 404, not an outage.
+    if (error.code === "22P02") return null;
+    throw new Error(`getSeshById: ${error.message}`);
+  }
+  return data ? toSesh(data) : null;
+}
+
+export async function getSales(jarId?: string): Promise<Sale[]> {
   // `sales` reaches `members` two ways — the sold_by FK and the auto-detected
   // m2m through sale_beneficiaries — so the seller embed needs the explicit
   // FK hint or PostgREST bails with PGRST201.
-  const { data, error } = await getSupabase()
+  let q = getSupabase()
     .from("sales")
     .select("*, seller:members!sales_sold_by_fkey(*), sale_beneficiaries(member:members(*))")
     .order("created_at");
+  if (jarId) q = q.eq("jar_id", jarId);
+  const { data, error } = await q;
   if (error) throw new Error(`getSales: ${error.message}`);
   return (data ?? []).map(toSale);
 }
 
-/** Everything in parallel — the dataset is tiny (a friend group's jar). */
-export async function getEverything() {
+/** Everything in parallel — the dataset is tiny (a friend group's jars). */
+export async function getEverything(jarId?: string) {
   const [members, purchases, seshes, sales] = await Promise.all([
     getMembers(),
-    getPurchases(),
-    getSeshes(),
-    getSales(),
+    getPurchases(jarId),
+    getSeshes(jarId),
+    getSales(jarId),
   ]);
   return { members, purchases, seshes, sales };
 }

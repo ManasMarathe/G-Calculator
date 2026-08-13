@@ -1,13 +1,23 @@
 import { cacheLife, cacheTag } from "next/cache";
+import { notFound } from "next/navigation";
 import { computeBalances, settleDebts, stashGrams, avgCostPerGram } from "@/lib/calc";
 import { grams, inr } from "@/lib/format";
-import { getEverything } from "@/lib/queries";
+import { getEverything, getJarById } from "@/lib/queries";
 
-export default async function SettlePage() {
+export default async function SettlePage({ params }: { params: Promise<{ jarId: string }> }) {
+  const { jarId } = await params;
+  return <SettleInner jarId={jarId} />;
+}
+
+async function SettleInner({ jarId }: { jarId: string }) {
   "use cache";
   cacheLife("days");
   cacheTag("jar");
-  const { members, purchases, seshes, sales } = await getEverything();
+  const [jar, { members, purchases, seshes, sales }] = await Promise.all([
+    getJarById(jarId),
+    getEverything(jarId),
+  ]);
+  if (!jar) notFound();
   const balances = computeBalances(members, purchases, seshes, sales);
   const transfers = settleDebts(balances);
   const stash = stashGrams(purchases, seshes, sales);

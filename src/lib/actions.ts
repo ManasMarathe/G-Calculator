@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PIN_COOKIE, sha256Hex } from "./auth";
 import { avgCostPerGram, round2, stashGrams } from "./calc";
-import { getPurchases, getSales, getSeshes } from "./queries";
+import { getPurchases, getSales, getSeshById, getSeshes } from "./queries";
 import { getSupabase } from "./supabase";
 
 export type ActionState = { error?: string } | null;
@@ -45,7 +45,11 @@ export async function addMember(_prev: ActionState, formData: FormData): Promise
   return null;
 }
 
-export async function addPurchase(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function addPurchase(
+  jarId: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const member_id = String(formData.get("member_id") ?? "");
   const grams = Number(formData.get("grams"));
   const total_cost = Number(formData.get("total_cost"));
@@ -57,29 +61,35 @@ export async function addPurchase(_prev: ActionState, formData: FormData): Promi
 
   const { error } = await getSupabase()
     .from("purchases")
-    .insert({ member_id, grams: round2(grams), total_cost: round2(total_cost), note });
+    .insert({ jar_id: jarId, member_id, grams: round2(grams), total_cost: round2(total_cost), note });
   if (error) return { error: error.message };
   updateTag("jar");
   return null;
 }
 
 export async function deletePurchase(id: string): Promise<void> {
-  const [purchases, seshes, sales] = await Promise.all([
-    getPurchases(),
-    getSeshes(),
-    getSales(),
-  ]);
+  // The row is authoritative for which jar it belongs to — never the client.
+  const purchases = await getPurchases();
   const target = purchases.find((p) => p.id === id);
   if (!target) return;
+  const jarPurchases = purchases.filter((p) => p.jar_id === target.jar_id);
+  const [seshes, sales] = await Promise.all([
+    getSeshes(target.jar_id),
+    getSales(target.jar_id),
+  ]);
   // Removing a buy can't leave the jar owing grams it already smoked or sold.
-  const stashAfter = stashGrams(purchases, seshes, sales) - target.grams;
+  const stashAfter = stashGrams(jarPurchases, seshes, sales) - target.grams;
   if (stashAfter < 0) return;
 
   await getSupabase().from("purchases").delete().eq("id", id);
   updateTag("jar");
 }
 
-export async function createSesh(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function createSesh(
+  jarId: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const end_grams = Number(formData.get("end_grams"));
   const participantIds = [
     ...new Set(formData.getAll("participants").map(String).filter(Boolean)),
@@ -94,9 +104,9 @@ export async function createSesh(_prev: ActionState, formData: FormData): Promis
   // (last sesh's end + purchases since, minus anything flipped) — never
   // taken from the client.
   const [purchases, seshes, sales] = await Promise.all([
-    getPurchases(),
-    getSeshes(),
-    getSales(),
+    getPurchases(jarId),
+    getSeshes(jarId),
+    getSales(jarId),
   ]);
   const start_grams = stashGrams(purchases, seshes, sales);
   const cost_per_gram = avgCostPerGram(purchases);
@@ -110,6 +120,7 @@ export async function createSesh(_prev: ActionState, formData: FormData): Promis
   const { data: sesh, error } = await supabase
     .from("seshes")
     .insert({
+      jar_id: jarId,
       start_grams,
       end_grams: round2(end_grams),
       cost_per_gram: round2(cost_per_gram),
@@ -127,7 +138,83 @@ export async function createSesh(_prev: ActionState, formData: FormData): Promis
     return { error: pErr.message };
   }
   updateTag("jar");
-  redirect("/?celebrate=1");
+  redirect(`/jar/${jarId}?celebrate=1`);
+}
+
+export async function updateSesh(
+  id: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  // Gate first: edits rewrite history, so they need the admin code. The check
+  // lives server-side only — the code never reaches the client bundle.
+  const code = String(formData.get("admin_code") ?? "").trim();
+  const expected = process.env.G_TRACKER_ADMIN_CODE || "2000";
+  if (code !== expected) return { error: "Wrong admin code 🚔" };
+
+  const end_grams = Number(formData.get("end_grams"));
+  const participantIds = [
+    ...new Set(formData.getAll("participants").map(String).filter(Boolean)),
+  ];
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  if (participantIds.length === 0) return { error: "A sesh with nobody in it? Sus 🤨" };
+  if (!Number.isFinite(end_grams) || end_grams < 0)
+    return { error: "End weight can't be negative" };
+
+  // The row is authoritative for which jar it belongs to — never the client.
+  const target = await getSeshById(id);
+  if (!target) return { error: "That sesh isn't in the books anymore 👻" };
+  const [purchases, seshes, sales] = await Promise.all([
+    getPurchases(target.jar_id),
+    getSeshes(target.jar_id),
+    getSales(target.jar_id),
+  ]);
+
+  if (end_grams >= target.start_grams)
+    return { error: `You just stared at it? 👀 End weight must be under ${target.start_grams}g` };
+
+  // Smoking MORE than originally logged pulls extra grams out of the jar —
+  // refuse if the jar has since smoked/sold them. Un-smoking (raising the end
+  // weight) only returns grams, so it never needs a guard. Epsilon because
+  // these are round2 doubles.
+  const newSmoked = round2(target.start_grams - round2(end_grams));
+  const delta = newSmoked - target.grams_smoked;
+  if (delta > 0 && delta - stashGrams(purchases, seshes, sales) > 0.001)
+    return {
+      error: `Can't add ${round2(delta)}g of smoke — the jar doesn't have it anymore 🫙`,
+    };
+
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from("seshes")
+    .update({ end_grams: round2(end_grams), note })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  // No transactions — diff the participants instead of delete-all-then-insert,
+  // and add before removing, so a mid-way failure leaves a harmless superset
+  // rather than a zero-participant sesh.
+  const oldIds = new Set(target.participants.map((m) => m.id));
+  const toAdd = participantIds.filter((mid) => !oldIds.has(mid));
+  const toRemove = [...oldIds].filter((mid) => !participantIds.includes(mid));
+  if (toAdd.length > 0) {
+    const { error: aErr } = await supabase
+      .from("sesh_participants")
+      .insert(toAdd.map((member_id) => ({ sesh_id: id, member_id })));
+    if (aErr) return { error: aErr.message };
+  }
+  if (toRemove.length > 0) {
+    const { error: rErr } = await supabase
+      .from("sesh_participants")
+      .delete()
+      .eq("sesh_id", id)
+      .in("member_id", toRemove);
+    if (rErr) return { error: rErr.message };
+  }
+
+  updateTag("jar");
+  redirect(`/jar/${target.jar_id}/sesh`);
 }
 
 export async function deleteSesh(id: string): Promise<void> {
@@ -136,7 +223,11 @@ export async function deleteSesh(id: string): Promise<void> {
   updateTag("jar");
 }
 
-export async function createSale(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function createSale(
+  jarId: string,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const sold_by = String(formData.get("sold_by") ?? "");
   const gramsSold = Number(formData.get("grams"));
   const total_price = Number(formData.get("total_price"));
@@ -156,9 +247,9 @@ export async function createSale(_prev: ActionState, formData: FormData): Promis
   // Same rule as createSesh: the stash and the rate come from the server, never
   // the client. The rate is snapshotted so the profit is immutable after today.
   const [purchases, seshes, sales] = await Promise.all([
-    getPurchases(),
-    getSeshes(),
-    getSales(),
+    getPurchases(jarId),
+    getSeshes(jarId),
+    getSales(jarId),
   ]);
   const stash = stashGrams(purchases, seshes, sales);
   const cost_per_gram = avgCostPerGram(purchases);
@@ -184,6 +275,7 @@ export async function createSale(_prev: ActionState, formData: FormData): Promis
   const { data: sale, error } = await supabase
     .from("sales")
     .insert({
+      jar_id: jarId,
       sold_by,
       grams,
       total_price: rounded_price,
@@ -204,6 +296,39 @@ export async function createSale(_prev: ActionState, formData: FormData): Promis
   }
   updateTag("jar");
   return null;
+}
+
+export async function createJar(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const emoji = String(formData.get("emoji") ?? "").trim() || "🫙";
+  if (!name) return { error: "A jar needs a name" };
+  if (name.length > 30) return { error: "That name is way too long, bro" };
+
+  const { data, error } = await getSupabase()
+    .from("jars")
+    .insert({ name, emoji })
+    .select("id")
+    .single();
+  if (error || !data) {
+    return {
+      error:
+        error?.code === "23505"
+          ? `There's already a jar called ${name} 👀`
+          : (error?.message ?? "Failed to create the jar"),
+    };
+  }
+  updateTag("jar");
+  redirect(`/jar/${data.id}`);
+}
+
+export async function deleteJar(id: string, code: string): Promise<{ error?: string } | void> {
+  // Nuking a jar takes its whole ledger with it (FK cascade) — admin only.
+  const expected = process.env.G_TRACKER_ADMIN_CODE || "2000";
+  if (code.trim() !== expected) return { error: "Wrong admin code 🚔" };
+
+  const { error } = await getSupabase().from("jars").delete().eq("id", id);
+  if (error) return { error: error.message };
+  updateTag("jar");
 }
 
 export async function deleteSale(id: string): Promise<void> {

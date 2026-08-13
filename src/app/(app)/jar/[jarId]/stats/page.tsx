@@ -11,16 +11,26 @@ import {
 } from "@/lib/calc";
 import { grams, inr, inrPrecise, shortDate } from "@/lib/format";
 import { cacheLife, cacheTag } from "next/cache";
-import { getEverything } from "@/lib/queries";
+import { notFound } from "next/navigation";
+import { getEverything, getJarById } from "@/lib/queries";
 import { computeTrophies } from "@/lib/trophies";
 
-export default async function StatsPage() {
+export default async function StatsPage({ params }: { params: Promise<{ jarId: string }> }) {
+  const { jarId } = await params;
+  return <StatsInner jarId={jarId} />;
+}
+
+async function StatsInner({ jarId }: { jarId: string }) {
   // "hours" (not "days") so the Date.now()-based burn-rate/runway numbers
   // below refresh on their own even when nobody logs anything.
   "use cache";
   cacheLife("hours");
   cacheTag("jar");
-  const { members, purchases, seshes, sales } = await getEverything();
+  const [jar, { members, purchases, seshes, sales }] = await Promise.all([
+    getJarById(jarId),
+    getEverything(jarId),
+  ]);
+  if (!jar) notFound();
   const balances = computeBalances(members, purchases, seshes, sales);
   const trophies = computeTrophies(members, purchases, seshes, sales, balances);
 
