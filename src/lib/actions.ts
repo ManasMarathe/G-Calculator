@@ -321,6 +321,23 @@ export async function createJar(_prev: ActionState, formData: FormData): Promise
   redirect(`/jar/${data.id}`);
 }
 
+export async function renameJar(id: string, name: string): Promise<{ error?: string } | void> {
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "A jar needs a name" };
+  if (trimmed.length > 30) return { error: "That name is way too long, bro" };
+
+  const { error } = await getSupabase().from("jars").update({ name: trimmed }).eq("id", id);
+  if (error) {
+    return {
+      error:
+        error.code === "23505"
+          ? `There's already a jar called ${trimmed} 👀`
+          : error.message,
+    };
+  }
+  updateTag("jar");
+}
+
 export async function deleteJar(id: string, code: string): Promise<{ error?: string } | void> {
   // Nuking a jar takes its whole ledger with it (FK cascade) — admin only.
   const expected = process.env.G_TRACKER_ADMIN_CODE || "2000";

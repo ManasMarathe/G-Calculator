@@ -3,6 +3,7 @@ import Link from "next/link";
 import FloatingSmoke from "@/components/FloatingSmoke";
 import JarDeleteButton from "@/components/JarDeleteButton";
 import JarForm from "@/components/JarForm";
+import JarRenameButton from "@/components/JarRenameButton";
 import { stashGrams } from "@/lib/calc";
 import { grams, inr } from "@/lib/format";
 import { getEverything, getJars } from "@/lib/queries";
@@ -60,6 +61,7 @@ export default async function JarPicker() {
                       </p>
                     </div>
                   </Link>
+                  <JarRenameButton id={jar.id} name={jar.name} />
                   <JarDeleteButton id={jar.id} name={jar.name} />
                 </div>
               </li>
