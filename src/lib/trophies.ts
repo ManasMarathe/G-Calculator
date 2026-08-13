@@ -1,6 +1,6 @@
-import { computeBalances } from "./calc";
+import { computeBalances, round2, saleProfit } from "./calc";
 import { grams, inr } from "./format";
-import type { Member, Purchase, Sesh } from "./types";
+import type { Member, Purchase, Sale, Sesh } from "./types";
 
 export type Trophy = {
   id: string;
@@ -20,9 +20,10 @@ function top<T extends { score: number; member: Member }>(rows: T[]): T | null {
 export function computeTrophies(
   members: Member[],
   purchases: Purchase[],
-  seshes: Sesh[]
+  seshes: Sesh[],
+  sales: Sale[]
 ): Trophy[] {
-  const balances = computeBalances(members, purchases, seshes);
+  const balances = computeBalances(members, purchases, seshes, sales);
   const trophies: Trophy[] = [];
 
   const refilled = top(
@@ -95,7 +96,11 @@ export function computeTrophies(
       value: `${grams(whale.grams)} in one go`,
     });
 
-  const saint = top(balances.map((b) => ({ member: b.member, score: b.net })));
+  // Consumption-only net, NOT b.net: sale cash is the group's money passing
+  // through the seller's hands, not them paying for or freeloading on smoke.
+  const saint = top(
+    balances.map((b) => ({ member: b.member, score: round2(b.bought - b.smokedShare) }))
+  );
   if (saint)
     trophies.push({
       id: "the-saint",
@@ -106,7 +111,9 @@ export function computeTrophies(
       value: `${inr(saint.score)} in credit`,
     });
 
-  const shark = top(balances.map((b) => ({ member: b.member, score: -b.net })));
+  const shark = top(
+    balances.map((b) => ({ member: b.member, score: round2(b.smokedShare - b.bought) }))
+  );
   if (shark)
     trophies.push({
       id: "the-shark",
@@ -115,6 +122,24 @@ export function computeTrophies(
       desc: "smokes now, pays… eventually",
       winner: shark.member,
       value: `${inr(shark.score)} behind`,
+    });
+
+  const plug = top(
+    members.map((member) => ({
+      member,
+      score: sales
+        .filter((s) => s.sold_by === member.id)
+        .reduce((sum, s) => sum + saleProfit(s), 0),
+    }))
+  );
+  if (plug)
+    trophies.push({
+      id: "the-plug",
+      emoji: "💰",
+      title: "The Plug",
+      desc: "turns green into greener",
+      winner: plug.member,
+      value: `${inr(round2(plug.score))} flipped`,
     });
 
   return trophies;

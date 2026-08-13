@@ -1,7 +1,14 @@
 import CountUp from "@/components/CountUp";
 import { CumulativeSmokedChart, MemberGramsChart, RateTrendChart } from "@/components/Charts";
 import Trophies from "@/components/Trophies";
-import { computeBalances, round2, seshCost, stashGrams, avgCostPerGram } from "@/lib/calc";
+import {
+  computeBalances,
+  round2,
+  saleProfit,
+  seshCost,
+  stashGrams,
+  avgCostPerGram,
+} from "@/lib/calc";
 import { grams, inr, inrPrecise, shortDate } from "@/lib/format";
 import { getEverything } from "@/lib/queries";
 import { computeTrophies } from "@/lib/trophies";
@@ -9,8 +16,8 @@ import { computeTrophies } from "@/lib/trophies";
 export const dynamic = "force-dynamic";
 
 export default async function StatsPage() {
-  const { members, purchases, seshes } = await getEverything();
-  const trophies = computeTrophies(members, purchases, seshes);
+  const { members, purchases, seshes, sales } = await getEverything();
+  const trophies = computeTrophies(members, purchases, seshes, sales);
 
   if (purchases.length === 0 && seshes.length === 0) {
     return (
@@ -26,8 +33,11 @@ export default async function StatsPage() {
     );
   }
 
-  const balances = computeBalances(members, purchases, seshes);
+  const balances = computeBalances(members, purchases, seshes, sales);
   const totalSmoked = seshes.reduce((s, x) => s + x.grams_smoked, 0);
+  const soldGrams = sales.reduce((s, x) => s + x.grams, 0);
+  const totalRevenue = sales.reduce((s, x) => s + x.total_price, 0);
+  const totalProfit = sales.reduce((s, x) => s + saleProfit(x), 0);
   const biggest = seshes.reduce(
     (max, s) => (s.grams_smoked > (max?.grams_smoked ?? 0) ? s : max),
     seshes[0]
@@ -41,7 +51,9 @@ export default async function StatsPage() {
       : 0;
 
   // Burn rate: grams/day since the first sesh → runway for the current stash.
-  const stash = stashGrams(purchases, seshes);
+  // Sold grams aren't burned, so they don't move the rate — but they do shrink
+  // the stash, which correctly shortens the runway.
+  const stash = stashGrams(purchases, seshes, sales);
   let burnRate = 0;
   let seshesPerWeek = 0;
   if (seshes.length > 0) {
@@ -105,6 +117,21 @@ export default async function StatsPage() {
             {seshes.length > 0 ? `~${round2(avgHeads)} heads in rotation` : "no seshes yet"}
           </p>
         </div>
+        {sales.length > 0 && (
+          <div className={`${tile} col-span-2`}>
+            <p className="text-[11px] text-muted uppercase tracking-wide">💰 Flipped</p>
+            <p className="font-display text-lg font-bold mt-1">
+              {grams(soldGrams)} out for {inr(totalRevenue)}
+            </p>
+            <p className="text-sm text-muted">
+              <span className={totalProfit >= 0 ? "text-accent-deep" : "text-danger"}>
+                {totalProfit >= 0 ? "+" : ""}
+                {inr(totalProfit)} profit
+              </span>{" "}
+              across {sales.length} flip{sales.length === 1 ? "" : "s"}
+            </p>
+          </div>
+        )}
         {daysLeft !== null && (
           <div className={`${tile} col-span-2`}>
             <p className="text-[11px] text-muted uppercase tracking-wide">⏳ Jar runway</p>

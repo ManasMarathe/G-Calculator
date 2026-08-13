@@ -26,12 +26,27 @@ export type Sesh = {
   participants: Member[];
 };
 
+export type Sale = {
+  id: string;
+  sold_by: string;
+  grams: number;
+  total_price: number;
+  cost_per_gram: number; // snapshot of the weighted avg at sale time
+  note: string | null;
+  created_at: string;
+  seller: Member;
+  beneficiaries: Member[];
+};
+
 export type Balance = {
   member: Member;
   bought: number; // ₹ credited from purchases
+  earned: number; // ₹ credited from equal profit shares (flips are cost-or-above, so ≥ 0)
   smokedShare: number; // ₹ debited from sesh shares
   smokedGrams: number; // attributed grams (equal split per sesh)
-  net: number; // bought − smokedShare; you owe only for what you smoked
+  collected: number; // ₹ debited — sale cash they're personally holding
+  soldGrams: number; // grams they moved as the seller
+  net: number; // bought + earned − smokedShare − collected
 };
 
 export type Transfer = {
@@ -42,4 +57,5 @@ export type Transfer = {
 
 export type ActivityItem =
   | { kind: "purchase"; at: string; purchase: Purchase; stashAfter: number }
-  | { kind: "sesh"; at: string; sesh: Sesh; stashAfter: number };
+  | { kind: "sesh"; at: string; sesh: Sesh; stashAfter: number }
+  | { kind: "sale"; at: string; sale: Sale; stashAfter: number };

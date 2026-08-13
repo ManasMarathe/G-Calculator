@@ -9,8 +9,8 @@ import { getEverything } from "@/lib/queries";
 export const dynamic = "force-dynamic";
 
 export default async function SeshPage() {
-  const { members, purchases, seshes } = await getEverything();
-  const stash = stashGrams(purchases, seshes);
+  const { members, purchases, seshes, sales } = await getEverything();
+  const stash = stashGrams(purchases, seshes, sales);
   const rate = avgCostPerGram(purchases);
   const canSesh = stash > 0 && rate > 0 && members.length > 0;
   const newestFirst = [...seshes].reverse();

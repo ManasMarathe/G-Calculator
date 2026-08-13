@@ -1,5 +1,5 @@
 import { getSupabase } from "./supabase";
-import type { Member, Purchase, Sesh } from "./types";
+import type { Member, Purchase, Sale, Sesh } from "./types";
 
 // Supabase returns Postgres `numeric` columns as strings — coerce once here
 // so every consumer works in plain numbers.
@@ -40,6 +40,20 @@ function toSesh(row: any): Sesh {
   };
 }
 
+function toSale(row: any): Sale {
+  return {
+    id: row.id,
+    sold_by: row.sold_by,
+    grams: Number(row.grams),
+    total_price: Number(row.total_price),
+    cost_per_gram: Number(row.cost_per_gram),
+    note: row.note,
+    created_at: row.created_at,
+    seller: toMember(row.seller),
+    beneficiaries: (row.sale_beneficiaries ?? []).map((b: any) => toMember(b.member)),
+  };
+}
+
 export async function getMembers(): Promise<Member[]> {
   const { data, error } = await getSupabase()
     .from("members")
@@ -67,12 +81,25 @@ export async function getSeshes(): Promise<Sesh[]> {
   return (data ?? []).map(toSesh);
 }
 
-/** One round trip for everything — the dataset is tiny (a friend group's jar). */
+export async function getSales(): Promise<Sale[]> {
+  // `sales` reaches `members` two ways — the sold_by FK and the auto-detected
+  // m2m through sale_beneficiaries — so the seller embed needs the explicit
+  // FK hint or PostgREST bails with PGRST201.
+  const { data, error } = await getSupabase()
+    .from("sales")
+    .select("*, seller:members!sales_sold_by_fkey(*), sale_beneficiaries(member:members(*))")
+    .order("created_at");
+  if (error) throw new Error(`getSales: ${error.message}`);
+  return (data ?? []).map(toSale);
+}
+
+/** Everything in parallel — the dataset is tiny (a friend group's jar). */
 export async function getEverything() {
-  const [members, purchases, seshes] = await Promise.all([
+  const [members, purchases, seshes, sales] = await Promise.all([
     getMembers(),
     getPurchases(),
     getSeshes(),
+    getSales(),
   ]);
-  return { members, purchases, seshes };
+  return { members, purchases, seshes, sales };
 }

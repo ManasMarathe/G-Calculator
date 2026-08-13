@@ -5,10 +5,10 @@ import { getEverything } from "@/lib/queries";
 export const dynamic = "force-dynamic";
 
 export default async function SettlePage() {
-  const { members, purchases, seshes } = await getEverything();
-  const balances = computeBalances(members, purchases, seshes);
+  const { members, purchases, seshes, sales } = await getEverything();
+  const balances = computeBalances(members, purchases, seshes, sales);
   const transfers = settleDebts(balances);
-  const stash = stashGrams(purchases, seshes);
+  const stash = stashGrams(purchases, seshes, sales);
   const stashValue = stash * avgCostPerGram(purchases);
   const sorted = [...balances].sort((a, b) => b.net - a.net);
 
@@ -19,6 +19,7 @@ export default async function SettlePage() {
         <p className="text-muted text-sm mt-1">
           you owe for what you smoked, you&apos;re credited for what you bought — the{" "}
           {grams(stash)} still in the jar (≈{inr(stashValue)}) stays as the buyers&apos; credit 🍃
+          {sales.length > 0 && <> · whoever made a flip holds that cash till they pay it round 💰</>}
         </p>
       </header>
 
@@ -44,6 +45,10 @@ export default async function SettlePage() {
                     <p className="text-xs text-muted">
                       put in {inr(b.bought)} · smoked {grams(b.smokedGrams)} worth{" "}
                       {inr(b.smokedShare)}
+                      {b.collected > 0.01 &&
+                        ` · holding ${inr(b.collected)} from ${grams(b.soldGrams)} sold`}
+                      {Math.abs(b.earned) > 0.01 &&
+                        ` · ${b.earned >= 0 ? "+" : ""}${inr(b.earned)} profit share`}
                     </p>
                   </div>
                   <span
@@ -61,7 +66,7 @@ export default async function SettlePage() {
               ))}
             </ul>
             <p className="text-xs text-muted px-1">
-              ↑ paid more than they smoked · ↓ smoked more than they paid
+              ↑ the group owes them · ↓ they owe the group
             </p>
           </section>
 
